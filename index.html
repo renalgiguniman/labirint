@@ -108,7 +108,7 @@ button{cursor:pointer}
   <div id="gateProgress" class="hud">GATE 0 / 10</div>
   <div id="stats" class="hud">🪙 <span id="coinText">0</span><br>⏱ <span id="timeText">00:00</span></div>
   <div id="objective" class="hud">Cari Knowledge Gate pertama</div>
-  <div id="help" class="hud">WASD bergerak<br>Drag mouse = kamera<br>Scroll = zoom<br>Shift sprint • Space jump</div>
+  <div id="help" class="hud">W maju • S mundur<br>A kiri • D kanan<br>Klik layar = mouse-look<br>Esc = lepas mouse • Kamera tetap</div>
   <div id="minimapWrap"><canvas id="minimap" width="220" height="220"></canvas></div>
   <div id="toast"></div>
   <div id="mobileControls">
@@ -135,7 +135,7 @@ button{cursor:pointer}
         <div class="notice"><b>Prototype offline:</b> kode game tersimpan di browser ini. Untuk kode yang bisa dipakai lintas HP/laptop, sambungkan penyimpanan game ke Supabase/Firebase.</div>
       </div>
       <div class="panel">
-        <div class="feature"><i>🖱️</i><div><b>Kamera Cursor</b><span>Cursor tetap terlihat. Klik-drag area game untuk memutar kamera dan scroll untuk zoom.</span></div></div>
+        <div class="feature"><i>🖱️</i><div><b>Kamera Cursor</b><span>Map dibuat tetap seperti maze klasik; 10 gate disusun menuju goal di kanan bawah.</span></div></div>
         <div class="feature"><i>🧱</i><div><b>Roblox-like Character</b><span>Karakter blocky dengan animasi idle, walk, sprint, jump, dan fall.</span></div></div>
         <div class="feature"><i>📄</i><div><b>Question Editor</b><span>Tambah, edit, hapus, import CSV/XLSX, dan download template.</span></div></div>
         <div class="feature"><i>🔐</i><div><b>Game Code</b><span>Guru publish permainan dan mendapat kode untuk Join Game.</span></div></div>
@@ -279,7 +279,7 @@ button{cursor:pointer}
 <script>
 (()=>{
 "use strict";
-const CELL=2.3,N=21;
+const CELL=2.75,N=27;
 const $=id=>document.getElementById(id);
 const screens={home:$("homeScreen"),teacher:$("teacherScreen"),join:$("joinScreen")};
 function showScreen(name){Object.values(screens).forEach(s=>s.classList.add("hidden"));screens[name].classList.remove("hidden")}
@@ -436,7 +436,7 @@ let gates=[],coins=[],traps=[],checkpoints=[],finishPortal;
 let questions=[],totalGates=0,currentGame=null;
 let started=false,quizOpen=false,finished=false,currentGate=null,selectedAnswer=null;
 let hearts=3,score=0,coinCount=0,openedGates=0,correctCount=0,wrongCount=0,startTime=0,elapsed=0,lastTrap=0,mudUntil=0;
-let yaw=0,pitch=-.18,cameraDistance=4.4,vy=0,playerY=.66,respawn={x:1,z:1};
+let yaw=0,pitch=-.18,targetYaw=0,targetPitch=-.18,cameraDistance=6.0,vy=0,playerY=.66,respawn={x:1,z:1};
 let explored=new Set(),gateCells=new Set(),coinCells=new Set();
 const keys={},mctx=$("minimap").getContext("2d");
 let dragCam=false,lastMX=0,lastMY=0;
@@ -454,17 +454,51 @@ function startGame(obj){
 function resetGameState(){
  gates=[];coins=[];traps=[];checkpoints=[];finishPortal=null;explored=new Set();gateCells=new Set();coinCells=new Set();
  hearts=3;score=0;coinCount=0;openedGates=0;correctCount=0;wrongCount=0;elapsed=0;finished=false;quizOpen=false;currentGate=null;
- yaw=0;pitch=-.18;cameraDistance=4.4;vy=0;respawn={x:1,z:1};updateHUD();
+ yaw=0;pitch=-.18;targetYaw=0;targetPitch=-.18;cameraDistance=6.0;vy=0;respawn={x:1,z:1};updateHUD();
 }
 function key(x,z){return x+","+z}
 function gridToWorld(x,z){return{x:(x-(N-1)/2)*CELL,z:(z-(N-1)/2)*CELL}}
 function worldToGrid(x,z){return{x:Math.round(x/CELL+(N-1)/2),z:Math.round(z/CELL+(N-1)/2)}}
 function rand(n){return Math.floor(Math.random()*n)}
+function seededRandFactory(seed){
+ let s=seed>>>0;
+ return function(){
+  s=(1664525*s+1013904223)>>>0;
+  return s/4294967296;
+ };
+}
 function genMaze(){
- const g=Array.from({length:N},()=>Array(N).fill(1)),stack=[[1,1]],dirs=[[2,0],[-2,0],[0,2],[0,-2]];g[1][1]=0;
- while(stack.length){const [x,z]=stack[stack.length-1];const c=dirs.map(([dx,dz])=>[x+dx,z+dz,dx,dz]).filter(([nx,nz])=>nx>0&&nz>0&&nx<N-1&&nz<N-1&&g[nz][nx]===1);
-  if(!c.length){stack.pop();continue}const [nx,nz,dx,dz]=c[rand(c.length)];g[z+dz/2][x+dx/2]=0;g[nz][nx]=0;stack.push([nx,nz])}
- for(let i=0;i<30;i++){const x=1+rand(N-2),z=1+rand(N-2);if(g[z][x]===1&&((g[z][x-1]===0&&g[z][x+1]===0)||(g[z-1][x]===0&&g[z+1][x]===0)))g[z][x]=0}
+ // Maze dibuat tetap/deterministik agar desain map konsisten seperti contoh.
+ const rnd=seededRandFactory(20260921);
+ const g=Array.from({length:N},()=>Array(N).fill(1));
+ const stack=[[1,1]];
+ const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
+ g[1][1]=0;
+
+ while(stack.length){
+  const [x,z]=stack[stack.length-1];
+  const c=dirs
+   .map(([dx,dz])=>[x+dx,z+dz,dx,dz])
+   .filter(([nx,nz])=>nx>0&&nz>0&&nx<N-1&&nz<N-1&&g[nz][nx]===1);
+
+  if(!c.length){stack.pop();continue}
+  const pick=c[Math.floor(rnd()*c.length)];
+  const [nx,nz,dx,dz]=pick;
+  g[z+dz/2][x+dx/2]=0;
+  g[nz][nx]=0;
+  stack.push([nx,nz]);
+ }
+
+ // Tambahkan beberapa koneksi ekstra agar terasa kompleks namun tetap rapi.
+ for(let i=0;i<28;i++){
+  const x=1+Math.floor(rnd()*(N-2));
+  const z=1+Math.floor(rnd()*(N-2));
+  if(g[z][x]===1&&((g[z][x-1]===0&&g[z][x+1]===0)||(g[z-1][x]===0&&g[z+1][x]===0)))g[z][x]=0;
+ }
+
+ // Pastikan start dan goal nyaman dimainkan.
+ g[1][1]=0; g[1][2]=0; g[2][1]=0;
+ g[N-2][N-2]=0; g[N-2][N-3]=0; g[N-3][N-2]=0;
  return g;
 }
 function farthest(g,s){
@@ -481,23 +515,23 @@ function path(g,s,t){
 }
 function init3D(){
  scene=new THREE.Scene();scene.background=new THREE.Color(0x93d9ff);scene.fog=new THREE.Fog(0x93d9ff,29,64);
- camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,120);
+ camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,155);
  renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;
  $("game").appendChild(renderer.domElement);clock=new THREE.Clock();
  scene.add(new THREE.HemisphereLight(0xdff6ff,0x557842,1.55));
  const sun=new THREE.DirectionalLight(0xfff1ca,1.8);sun.position.set(-14,28,12);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;scene.add(sun);
  const sunBall=new THREE.Mesh(new THREE.SphereGeometry(2.1,20,12),new THREE.MeshBasicMaterial({color:0xfff1a6}));sunBall.position.set(-27,23,-31);scene.add(sunBall);
  const ground=new THREE.Mesh(new THREE.PlaneGeometry(N*CELL+14,N*CELL+14),new THREE.MeshLambertMaterial({color:0x76b960}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
- maze=genMaze();const s={x:1,z:1},goal=farthest(maze,s);pathCells=path(maze,s,goal);
+ maze=genMaze();const s={x:1,z:1},goal={x:N-2,z:N-2};pathCells=path(maze,s,goal);
  buildWalls();buildDecor();buildPlayer();placeGates();placeCoins();placeTraps();placeCheckpoints();placeFinish(goal);
  const p=gridToWorld(1,1);player.position.set(p.x,playerY,p.z);respawn={x:1,z:1};
  bindGameEvents();animate();
 }
 function buildWalls(){
- const geo=new THREE.BoxGeometry(CELL*.92,2.2,CELL*.92),mat=new THREE.MeshLambertMaterial({color:0x2e7f40}),cells=[];
+ const geo=new THREE.BoxGeometry(CELL*.84,1.82,CELL*.84),mat=new THREE.MeshLambertMaterial({color:0x2e7f40}),cells=[];
  for(let z=0;z<N;z++)for(let x=0;x<N;x++)if(maze[z][x]===1)cells.push({x,z});
  const inst=new THREE.InstancedMesh(geo,mat,cells.length),m=new THREE.Matrix4();inst.castShadow=true;inst.receiveShadow=true;
- cells.forEach((c,i)=>{const p=gridToWorld(c.x,c.z);m.makeTranslation(p.x,1.08,p.z);inst.setMatrixAt(i,m)});scene.add(inst);
+ cells.forEach((c,i)=>{const p=gridToWorld(c.x,c.z);m.makeTranslation(p.x,.90,p.z);inst.setMatrixAt(i,m)});scene.add(inst);
 }
 function buildDecor(){
  const trunk=new THREE.MeshLambertMaterial({color:0x7a5737}),leaf=new THREE.MeshLambertMaterial({color:0x3d8b4c});
@@ -523,13 +557,51 @@ function buildPlayer(){
  limbs={leftArm,rightArm,leftLeg,rightLeg,torso,head};
 }
 function placeGates(){
- const usable=Math.max(4,pathCells.length-8);
- for(let i=0;i<totalGates;i++){const idx=Math.floor((i+1)*usable/(totalGates+1))+3,c=pathCells[Math.min(idx,pathCells.length-3)],p=gridToWorld(c.x,c.z);gateCells.add(key(c.x,c.z));
-  const g=new THREE.Group(),stone=new THREE.MeshLambertMaterial({color:0x8c7e69});
-  const l=partBox(.38,2.8,.55,0x8c7e69),r=l.clone(),top=partBox(1.95,.4,.55,0x8c7e69),door=partBox(1.3,2.08,.18,0x774b2e);
-  l.position.set(-.78,1.4,0);r.position.set(.78,1.4,0);top.position.set(0,2.58,0);door.position.y=1.04;
-  const rune=new THREE.Mesh(new THREE.TorusGeometry(.36,.08,8,18),new THREE.MeshBasicMaterial({color:0x71e5ff,transparent:true,opacity:.82}));rune.position.set(0,1.24,-.13);
-  g.add(l,r,top,door,rune);g.position.set(p.x,0,p.z);g.userData={index:i,cell:c,locked:true,door,rune,opening:false};scene.add(g);gates.push(g)}
+ const usable=Math.max(8,pathCells.length-10);
+ const hedgeHeight=1.82;
+
+ for(let i=0;i<totalGates;i++){
+  const idx=Math.floor((i+1)*usable/(totalGates+1))+4;
+  const c=pathCells[Math.min(idx,pathCells.length-4)];
+  const p=gridToWorld(c.x,c.z);
+  gateCells.add(key(c.x,c.z));
+
+  const g=new THREE.Group();
+  const stoneMat=new THREE.MeshLambertMaterial({color:0x8a7a65});
+  const trimMat=new THREE.MeshLambertMaterial({color:0xc6b28f});
+  const glowMat=new THREE.MeshBasicMaterial({color:0x74ecff,transparent:true,opacity:.85});
+
+  // Gate dibuat setinggi labirin agar menyatu dengan hedge.
+  const postHeight=1.45;
+  const leftPost=partBox(.26,postHeight,.34,0x8a7a65);
+  const rightPost=leftPost.clone();
+  leftPost.position.set(-.78,postHeight/2,0);
+  rightPost.position.set(.78,postHeight/2,0);
+
+  const topBeam=partBox(1.82,.22,.34,0xc6b28f);
+  topBeam.position.set(0,hedgeHeight-.12,0);
+
+  const door=partBox(1.28,1.40,.16,0x634131);
+  door.position.set(0,.70,.01);
+
+  const runePanel=new THREE.Mesh(
+   new THREE.PlaneGeometry(1.0,1.05),
+   new THREE.MeshBasicMaterial({color:0x2d7280,transparent:true,opacity:.28})
+  );
+  runePanel.position.set(0,.82,-.09);
+
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.24,.05,10,20),glowMat);
+  ring.position.set(0,1.28,-.11);
+
+  const jewel=new THREE.Mesh(new THREE.OctahedronGeometry(.12,0),glowMat);
+  jewel.position.set(0,hedgeHeight-.04,0);
+
+  g.add(leftPost,rightPost,topBeam,door,runePanel,ring,jewel);
+  g.position.set(p.x,0,p.z);
+  g.userData={index:i,cell:c,locked:true,door,ring,crystal:jewel,lanterns:[],opening:false,floatSeed:Math.random()*Math.PI*2};
+  scene.add(g);
+  gates.push(g);
+ }
 }
 function placeCoins(){
  const candidates=[];for(let z=1;z<N-1;z++)for(let x=1;x<N-1;x++){const k=key(x,z);if(maze[z][x]===0&&!gateCells.has(k)&&k!==key(1,1))candidates.push({x,z})}
@@ -556,24 +628,122 @@ function canMove(x,z){const r=.31;return !blocked(x+r,z)&&!blocked(x-r,z)&&!bloc
 let gameEventsBound=false;
 function bindGameEvents(){
  if(gameEventsBound)return;gameEventsBound=true;
- addEventListener("resize",()=>{if(camera&&renderer){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}});
- addEventListener("keydown",e=>{if(!started||quizOpen)return;keys[e.code]=true;if(e.code==="Space")jump()});
+
+ addEventListener("resize",()=>{
+  if(camera&&renderer){
+   camera.aspect=innerWidth/innerHeight;
+   camera.updateProjectionMatrix();
+   renderer.setSize(innerWidth,innerHeight);
+  }
+ });
+
+ addEventListener("keydown",e=>{
+  if(!started||quizOpen)return;
+  keys[e.code]=true;
+  if(e.code==="Space")jump();
+ });
  addEventListener("keyup",e=>keys[e.code]=false);
- $("game").addEventListener("pointerdown",e=>{if(!started||quizOpen||e.pointerType!=="mouse")return;dragCam=true;lastMX=e.clientX;lastMY=e.clientY});
- addEventListener("pointermove",e=>{if(!dragCam||!started||quizOpen)return;const dx=e.clientX-lastMX,dy=e.clientY-lastMY;lastMX=e.clientX;lastMY=e.clientY;yaw-=dx*.006;pitch-=dy*.004;pitch=Math.max(-.72,Math.min(.42,pitch))});
+
+ // Desktop camera:
+ // Klik area game untuk pointer-lock mouse-look.
+ // Jika pointer-lock tidak aktif, klik-drag masih bisa dipakai.
+ $("game").addEventListener("click",e=>{
+  if(!started||quizOpen||finished)return;
+  if(e.target!==renderer?.domElement && e.target!==$("game"))return;
+  if(document.pointerLockElement!==renderer?.domElement){
+   renderer?.domElement?.requestPointerLock?.();
+  }
+ });
+
+ $("game").addEventListener("pointerdown",e=>{
+  if(!started||quizOpen||e.pointerType!=="mouse")return;
+  dragCam=true;
+  lastMX=e.clientX;
+  lastMY=e.clientY;
+ });
+
+ addEventListener("mousemove",e=>{
+  if(!started||quizOpen||finished)return;
+
+  if(document.pointerLockElement===renderer?.domElement){
+   targetYaw-=e.movementX*.0038;
+   targetPitch-=e.movementY*.0030;
+   targetPitch=Math.max(-.48,Math.min(.20,targetPitch));
+   return;
+  }
+
+  if(dragCam){
+   const dx=e.clientX-lastMX,dy=e.clientY-lastMY;
+   lastMX=e.clientX;lastMY=e.clientY;
+   targetYaw-=dx*.0045;
+   targetPitch-=dy*.0035;
+   targetPitch=Math.max(-.48,Math.min(.20,targetPitch));
+  }
+ });
+
  addEventListener("pointerup",()=>dragCam=false);
- $("game").addEventListener("wheel",e=>{if(!started)return;e.preventDefault();cameraDistance=Math.max(2.6,Math.min(7.2,cameraDistance+e.deltaY*.003))},{passive:false});
+
+ $("game").addEventListener("wheel",e=>{if(started)e.preventDefault()},{passive:false});
+
  $("jumpBtn").addEventListener("pointerdown",jump);
- const sb=$("sprintBtn");sb.addEventListener("pointerdown",()=>window.mobileSprint=true);["pointerup","pointercancel","pointerleave"].forEach(ev=>sb.addEventListener(ev,()=>window.mobileSprint=false));
- window.mobileSprint=false;window.mobileMove={x:0,y:0};
- const joy=$("joystick"),knob=$("joystickKnob");let jid=null,center=null;
- joy.addEventListener("pointerdown",e=>{jid=e.pointerId;joy.setPointerCapture(e.pointerId);const r=joy.getBoundingClientRect();center={x:r.left+r.width/2,y:r.top+r.height/2};moveJoy(e)});
- joy.addEventListener("pointermove",e=>{if(e.pointerId===jid)moveJoy(e)});joy.addEventListener("pointerup",e=>{if(e.pointerId===jid){jid=null;window.mobileMove={x:0,y:0};knob.style.transform="translate(0,0)"}});
- function moveJoy(e){const dx=e.clientX-center.x,dy=e.clientY-center.y,max=40,l=Math.hypot(dx,dy)||1,s=Math.min(max,l)/l,x=dx*s,y=dy*s;knob.style.transform=`translate(${x}px,${y}px)`;window.mobileMove={x:x/max,y:y/max}}
- const ct=$("cameraTouch");let cid=null,cx=0,cy=0;
- ct.addEventListener("pointerdown",e=>{cid=e.pointerId;ct.setPointerCapture(e.pointerId);cx=e.clientX;cy=e.clientY});
- ct.addEventListener("pointermove",e=>{if(e.pointerId!==cid||quizOpen)return;const dx=e.clientX-cx,dy=e.clientY-cy;cx=e.clientX;cy=e.clientY;yaw-=dx*.006;pitch-=dy*.004;pitch=Math.max(-.72,Math.min(.42,pitch))});
- ct.addEventListener("pointerup",e=>{if(e.pointerId===cid)cid=null});
+
+ const sb=$("sprintBtn");
+ sb.addEventListener("pointerdown",()=>window.mobileSprint=true);
+ ["pointerup","pointercancel","pointerleave"].forEach(ev=>sb.addEventListener(ev,()=>window.mobileSprint=false));
+ window.mobileSprint=false;
+ window.mobileMove={x:0,y:0};
+
+ const joy=$("joystick"),knob=$("joystickKnob");
+ let jid=null,center=null;
+
+ joy.addEventListener("pointerdown",e=>{
+  jid=e.pointerId;
+  joy.setPointerCapture(e.pointerId);
+  const r=joy.getBoundingClientRect();
+  center={x:r.left+r.width/2,y:r.top+r.height/2};
+  moveJoy(e);
+ });
+
+ joy.addEventListener("pointermove",e=>{
+  if(e.pointerId===jid)moveJoy(e);
+ });
+
+ joy.addEventListener("pointerup",e=>{
+  if(e.pointerId===jid){
+   jid=null;
+   window.mobileMove={x:0,y:0};
+   knob.style.transform="translate(0,0)";
+  }
+ });
+
+ function moveJoy(e){
+  const dx=e.clientX-center.x,dy=e.clientY-center.y,max=40,l=Math.hypot(dx,dy)||1;
+  const s=Math.min(max,l)/l,x=dx*s,y=dy*s;
+  knob.style.transform=`translate(${x}px,${y}px)`;
+  window.mobileMove={x:x/max,y:y/max};
+ }
+
+ const ct=$("cameraTouch");
+ let cid=null,cx=0,cy=0;
+
+ ct.addEventListener("pointerdown",e=>{
+  cid=e.pointerId;
+  ct.setPointerCapture(e.pointerId);
+  cx=e.clientX;cy=e.clientY;
+ });
+
+ ct.addEventListener("pointermove",e=>{
+  if(e.pointerId!==cid||quizOpen)return;
+  const dx=e.clientX-cx,dy=e.clientY-cy;
+  cx=e.clientX;cy=e.clientY;
+  targetYaw-=dx*.0050;
+  targetPitch-=dy*.0036;
+  targetPitch=Math.max(-.48,Math.min(.20,targetPitch));
+ });
+
+ ct.addEventListener("pointerup",e=>{
+  if(e.pointerId===cid)cid=null;
+ });
 }
 function jump(){if(started&&!quizOpen&&!finished&&player.position.y<=playerY+.03)vy=4.8}
 function openQuiz(g){
@@ -618,8 +788,32 @@ function updatePlayer(dt,time){
  if(!started||quizOpen||finished)return;
  let ix=0,iz=0;if(keys.KeyW)iz+=1;if(keys.KeyS)iz-=1;if(keys.KeyD)ix+=1;if(keys.KeyA)ix-=1;
  ix+=window.mobileMove?.x||0;iz+=-(window.mobileMove?.y||0);
- const len=Math.hypot(ix,iz),moving=len>.05,sprint=!!(keys.ShiftLeft||keys.ShiftRight||window.mobileSprint),slow=performance.now()<mudUntil?.52:1;
- if(moving){ix/=len;iz/=len;const sin=Math.sin(yaw),cos=Math.cos(yaw),dx=ix*cos+iz*sin,dz=iz*cos-ix*sin,sp=(sprint?5.6:3.5)*slow,nx=player.position.x+dx*sp*dt,nz=player.position.z+dz*sp*dt;if(canMove(nx,player.position.z))player.position.x=nx;if(canMove(player.position.x,nz))player.position.z=nz;const target=Math.atan2(dx,dz);let d=((target-player.rotation.y+Math.PI)%(Math.PI*2))-Math.PI;player.rotation.y+=d*Math.min(1,dt*12)}
+ const len=Math.hypot(ix,iz),moving=len>.05,sprint=!!(keys.ShiftLeft||keys.ShiftRight||window.mobileSprint),slow=performance.now()<mudUntil ? .52 : 1;
+ if(moving){
+  ix/=len;iz/=len;
+  const sin=Math.sin(yaw),cos=Math.cos(yaw);
+
+  // Kamera-relative movement:
+  // W/S = maju/mundur mengikuti arah pandang kamera.
+  // A/D = strafe kiri/kanan relatif terhadap kamera.
+  const forwardX=sin;
+  const forwardZ=-cos;
+  const rightX=cos;
+  const rightZ=sin;
+  const dx=iz*forwardX+ix*rightX;
+  const dz=iz*forwardZ+ix*rightZ;
+
+  const sp=(sprint?5.6:3.5)*slow;
+  const nx=player.position.x+dx*sp*dt;
+  const nz=player.position.z+dz*sp*dt;
+
+  if(canMove(nx,player.position.z))player.position.x=nx;
+  if(canMove(player.position.x,nz))player.position.z=nz;
+
+  const target=Math.atan2(dx,dz);
+  let d=((target-player.rotation.y+Math.PI)%(Math.PI*2))-Math.PI;
+  player.rotation.y+=d*Math.min(1,dt*13);
+ }
  vy-=10.5*dt;player.position.y+=vy*dt;if(player.position.y<playerY){player.position.y=playerY;vy=0}
  animateCharacter(moving,sprint,player.position.y>playerY+.04,time,dt);
  const gc=worldToGrid(player.position.x,player.position.z);if(gc.x>=0&&gc.z>=0&&gc.x<N&&gc.z<N)explored.add(key(gc.x,gc.z));
@@ -630,10 +824,47 @@ function updatePlayer(dt,time){
  if(openedGates>=totalGates&&Math.hypot(player.position.x-finishPortal.position.x,player.position.z-finishPortal.position.z)<1.3)finishGame();
 }
 function updateCamera(){
- const target=new THREE.Vector3(player.position.x,player.position.y+1.28,player.position.z),cp=Math.cos(pitch),sp=Math.sin(pitch);
- const desired=new THREE.Vector3(target.x-Math.sin(yaw)*cp*cameraDistance,target.y-sp*cameraDistance+.45,target.z+Math.cos(yaw)*cp*cameraDistance);
- let safe=desired.clone();for(let i=1;i<=24;i++){const p=target.clone().lerp(desired,i/24);if(blocked(p.x,p.z)){safe=target.clone().lerp(desired,Math.max(0,(i-2)/24));break}}
- camera.position.lerp(safe,.2);camera.lookAt(target);
+ // Kamera third-person fixed-distance.
+ // Mouse hanya mengubah arah pandang, bukan jarak kamera.
+ let yawDelta=((targetYaw-yaw+Math.PI)%(Math.PI*2))-Math.PI;
+ yaw+=yawDelta*.18;
+ pitch+=(targetPitch-pitch)*.16;
+
+ const target=new THREE.Vector3(
+  player.position.x,
+  player.position.y+1.48,
+  player.position.z
+ );
+
+ const cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const fixedDistance=6.0;
+
+ const desired=new THREE.Vector3(
+  target.x-Math.sin(yaw)*cp*fixedDistance,
+  target.y-sp*fixedDistance+.86,
+  target.z+Math.cos(yaw)*cp*fixedDistance
+ );
+
+ // Jika ada hedge di belakang, kamera mendekat hanya sementara
+ // untuk menghindari clipping, lalu kembali otomatis ke jarak tetap.
+ let safe=desired.clone();
+ for(let i=1;i<=36;i++){
+  const p=target.clone().lerp(desired,i/36);
+  if(blocked(p.x,p.z)){
+   safe=target.clone().lerp(desired,Math.max(.32,(i-3)/36));
+   break;
+  }
+ }
+
+ camera.position.lerp(safe,.15);
+
+ // Fokus sedikit ke depan agar jalur di depan karakter lebih terlihat.
+ const lookForward=new THREE.Vector3(
+  Math.sin(yaw)*.46,
+  .03,
+  -Math.cos(yaw)*.46
+ );
+ camera.lookAt(target.clone().add(lookForward));
 }
 function drawMap(){
  const w=$("minimap").width,h=$("minimap").height,c=w/N;mctx.clearRect(0,0,w,h);mctx.fillStyle="rgba(7,18,28,.95)";mctx.fillRect(0,0,w,h);
@@ -642,9 +873,17 @@ function drawMap(){
  const p=worldToGrid(player.position.x,player.position.z);mctx.fillStyle="#6684ff";mctx.beginPath();mctx.arc((p.x+.5)*c,(p.z+.5)*c,Math.max(3,c*.35),0,Math.PI*2);mctx.fill();
 }
 function updateObjects(dt,time){
- gates.forEach(g=>{if(g.userData.opening&&g.userData.door.position.y<3.35)g.userData.door.position.y+=dt*2.8;g.userData.rune.rotation.z+=dt*1.2});
+ gates.forEach(g=>{
+  if(g.userData.opening&&g.userData.door.position.y<3.45)g.userData.door.position.y+=dt*2.9;
+  g.userData.ring.rotation.z+=dt*1.3;
+  g.userData.ring.scale.setScalar(1+Math.sin(time*2+g.userData.floatSeed)*.06);
+  g.userData.crystal.position.y=3.02+Math.sin(time*2.4+g.userData.floatSeed)*.08;
+  g.userData.crystal.rotation.y+=dt*1.5;
+  (g.userData.lanterns||[]).forEach((l,ix)=>{l.scale.setScalar(1+Math.sin(time*3+ix+g.userData.floatSeed)*.12)});
+ });
  coins.forEach(c=>{if(!c.userData.taken){c.rotation.y+=dt*2.5;c.position.y=.65+Math.sin(time*2+c.userData.phase)*.08}});
- traps.forEach(t=>{if(t.userData.type==="spike")t.rotation.y+=dt*.25});scene.children.forEach(o=>{if(o.userData.cloud)o.position.x+=dt*.2});
+ traps.forEach(t=>{if(t.userData.type==="spike")t.rotation.y+=dt*.25});
+ scene.children.forEach(o=>{if(o.userData.cloud)o.position.x+=dt*.2});
  if(finishPortal)finishPortal.rotation.y+=dt*.9;
 }
 function finishGame(){
