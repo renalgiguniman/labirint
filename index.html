@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Quiz Maze Adventure 3D — Teacher Edition</title>
+<style>
+:root{
+  --navy:#132033;--blue:#405cff;--blue2:#6f85ff;--paper:#f5f7fb;--ink:#182235;
+  --muted:#68758a;--line:#dde3ec;--good:#15965d;--bad:#d84949;--gold:#f2c94c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Arial,sans-serif;background:#eaf5ff;color:var(--ink);overflow:hidden}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+#game{position:fixed;inset:0;background:#92d7ff}
+#game canvas{display:block}
+.hidden{display:none!important}
+.screen{
+  position:fixed;inset:0;z-index:80;background:linear-gradient(150deg,#e9f6ff 0%,#f7fbff 48%,#edf0ff 100%);
+  overflow:auto;padding:24px;
+}
+.shell{width:min(1060px,100%);margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#415eff,#8b72ff);display:grid;place-items:center;color:#fff;font-size:24px;box-shadow:0 8px 24px rgba(64,92,255,.22)}
+.brand b{font-size:20px}.brand span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.hero{
+  display:grid;grid-template-columns:1.35fr .65fr;gap:18px;align-items:stretch;margin-top:6px
+}
+.panel{background:rgba(255,255,255,.93);border:1px solid rgba(214,223,235,.95);border-radius:22px;padding:24px;box-shadow:0 16px 45px rgba(38,60,90,.08)}
+.hero h1{font-size:clamp(34px,5vw,62px);line-height:.98;margin:0 0 16px;letter-spacing:-.045em}
+.hero p{font-size:17px;line-height:1.6;color:var(--muted);max-width:670px}
+.pill{display:inline-flex;padding:7px 11px;border-radius:999px;background:#eaf0ff;color:#3853dd;font-size:12px;font-weight:900;letter-spacing:.04em;margin-bottom:15px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.btn{border:0;border-radius:13px;padding:12px 16px;font-weight:850;min-height:46px}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.dark{background:var(--navy);color:#fff}
+.btn.light{background:#eef2f7;color:#27354b}
+.btn.danger{background:#fff0f0;color:#bd3030}
+.btn.outline{background:white;border:1px solid var(--line);color:#2c3a50}
+.btn.small{padding:8px 11px;min-height:36px;font-size:13px}
+.feature{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid #edf0f4}
+.feature:last-child{border-bottom:0}
+.feature i{font-style:normal;font-size:21px}
+.feature b{display:block}.feature span{color:var(--muted);font-size:13px;line-height:1.4}
+.notice{padding:12px 14px;border-radius:13px;background:#fff7df;color:#795c11;font-size:13px;line-height:1.5;border:1px solid #f3dfa6;margin-top:15px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:18px}
+.topbar h2{margin:0;font-size:28px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:grid;gap:6px}
+.field label{font-size:12px;font-weight:850;color:#4b5970}
+.field input,.field select,.field textarea{
+  width:100%;border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px 12px;outline:none;min-height:44px
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#7c8fff;box-shadow:0 0 0 3px rgba(64,92,255,.09)}
+.editorTools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:15px}
+#questionList{display:grid;gap:12px;margin-top:16px;padding-bottom:30px}
+.qcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px}
+.qhead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.qhead b{line-height:1.4}.qmeta{font-size:11px;color:var(--muted);margin-top:3px}
+.qactions{display:flex;gap:6px;flex:none}
+.importBox{background:#f5f8ff;border:1px dashed #aebbee;padding:12px;border-radius:13px;margin-top:12px}
+.importBox input{max-width:100%}
+.codebox{font:900 30px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;background:#eef1ff;color:#334bc9;padding:15px;border-radius:14px;text-align:center}
+.joinCard{width:min(560px,100%);margin:8vh auto 0}
+.joinCard h1{margin-top:0}
+.status{min-height:22px;font-size:13px;font-weight:750;margin-top:10px}
+.status.bad{color:var(--bad)}.status.good{color:var(--good)}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(6,13,24,.62);backdrop-filter:blur(5px);padding:16px}
+.modal.show{display:flex}
+.modalCard{width:min(650px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.28)}
+.modalCard h2{margin:4px 0 15px}
+.options{display:grid;gap:9px}
+.option{width:100%;text-align:left;background:#fff;border:2px solid #dfe5ee;border-radius:12px;padding:12px;font-weight:750}
+.option.selected{border-color:var(--blue);background:#edf1ff}
+.feedback{font-weight:800;min-height:22px;margin-top:11px}
+.feedback.good{color:var(--good)}.feedback.bad{color:var(--bad)}
+.quizQuestion{font-weight:850;font-size:19px;line-height:1.45;margin:12px 0 14px}
+.hud{position:fixed;z-index:20;color:#fff;font-weight:850;text-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none}
+#hearts{left:14px;top:14px;font-size:22px}
+#gateProgress{left:50%;top:14px;transform:translateX(-50%);background:rgba(8,16,25,.26);padding:8px 13px;border-radius:999px}
+#stats{right:14px;top:14px;background:rgba(8,16,25,.24);padding:8px 11px;border-radius:12px;text-align:right;font-size:13px;line-height:1.5}
+#objective{left:50%;bottom:18px;transform:translateX(-50%);background:rgba(8,16,25,.31);padding:9px 14px;border-radius:999px;font-size:13px}
+#help{left:14px;bottom:14px;background:rgba(8,16,25,.28);padding:9px 11px;border-radius:12px;font-size:11px;line-height:1.45}
+#toast{position:fixed;z-index:55;left:50%;top:16%;transform:translate(-50%,-8px);background:rgba(14,24,37,.92);color:#fff;padding:11px 16px;border-radius:12px;font-weight:850;opacity:0;transition:.2s;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#minimapWrap{position:fixed;z-index:22;right:14px;bottom:14px;width:145px;height:145px;border-radius:14px;background:rgba(7,17,26,.62);overflow:hidden;border:1px solid rgba(255,255,255,.22)}
+#minimap{width:100%;height:100%}
+#mobileControls{display:none}
+.joy{position:fixed;z-index:30;left:16px;bottom:22px;width:126px;height:126px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);touch-action:none}
+.knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.6)}
+.mbtn{position:fixed;z-index:31;width:74px;height:74px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(16,29,45,.55);color:white;font-size:11px;font-weight:900;touch-action:none}
+#jumpBtn{right:18px;bottom:20px}#sprintBtn{right:104px;bottom:49px}
+#cameraTouch{position:fixed;z-index:18;right:0;top:0;width:58%;height:100%;touch-action:none}
+@media(max-width:760px){
+  .screen{padding:14px}.hero,.grid2{grid-template-columns:1fr}.panel{padding:17px}.hero h1{font-size:40px}
+  #mobileControls{display:block}#help{display:none}#objective{bottom:158px;max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #minimapWrap{width:112px;height:112px;bottom:160px}#stats{font-size:11px}#gateProgress{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<div id="game"></div>
+
+<div id="gameUi" class="hidden">
+  <div id="hearts" class="hud">❤️❤️❤️</div>
+  <div id="gateProgress" class="hud">GATE 0 / 10</div>
+  <div id="stats" class="hud">🪙 <span id="coinText">0</span><br>⏱ <span id="timeText">00:00</span></div>
+  <div id="objective" class="hud">Cari Knowledge Gate pertama</div>
+  <div id="help" class="hud">WASD bergerak<br>Drag mouse = kamera<br>Scroll = zoom<br>Shift sprint • Space jump</div>
+  <div id="minimapWrap"><canvas id="minimap" width="220" height="220"></canvas></div>
+  <div id="toast"></div>
+  <div id="mobileControls">
+    <div id="cameraTouch"></div>
+    <div class="joy" id="joystick"><div class="knob" id="joystickKnob"></div></div>
+    <button class="mbtn" id="sprintBtn" type="button">SPRINT</button>
+    <button class="mbtn" id="jumpBtn" type="button">JUMP</button>
+  </div>
+</div>
+
+<section id="homeScreen" class="screen">
+  <div class="shell">
+    <div class="brand"><div class="logo">🧭</div><div><b>Quiz Maze Adventure 3D</b><span>Teacher Edition • HTML Prototype</span></div></div>
+    <div class="hero">
+      <div class="panel">
+        <div class="pill">ADVENTURE + MAZE + QUIZ</div>
+        <h1>Belajar terasa seperti petualangan.</h1>
+        <p>Buat soal sendiri, import dari Excel/CSV, publish game code, lalu siswa masuk ke labirin 3D dan membuka gerbang dengan menjawab soal.</p>
+        <div class="actions">
+          <button id="createBtn" class="btn primary" type="button">✏️ Buat / Edit Game</button>
+          <button id="joinBtn" class="btn dark" type="button">🔑 Join dengan Kode</button>
+          <button id="demoBtn" class="btn light" type="button">▶ Main Demo</button>
+        </div>
+        <div class="notice"><b>Prototype offline:</b> kode game tersimpan di browser ini. Untuk kode yang bisa dipakai lintas HP/laptop, sambungkan penyimpanan game ke Supabase/Firebase.</div>
+      </div>
+      <div class="panel">
+        <div class="feature"><i>🖱️</i><div><b>Kamera Cursor</b><span>Cursor tetap terlihat. Klik-drag area game untuk memutar kamera dan scroll untuk zoom.</span></div></div>
+        <div class="feature"><i>🧱</i><div><b>Roblox-like Character</b><span>Karakter blocky dengan animasi idle, walk, sprint, jump, dan fall.</span></div></div>
+        <div class="feature"><i>📄</i><div><b>Question Editor</b><span>Tambah, edit, hapus, import CSV/XLSX, dan download template.</span></div></div>
+        <div class="feature"><i>🔐</i><div><b>Game Code</b><span>Guru publish permainan dan mendapat kode untuk Join Game.</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="teacherScreen" class="screen hidden">
+  <div class="shell">
+    <div class="topbar">
+      <div><div class="pill">TEACHER MODE</div><h2>Buat Game</h2></div>
+      <button class="btn outline" id="teacherBack" type="button">← Kembali</button>
+    </div>
+    <div class="panel">
+      <div class="grid2">
+        <div class="field"><label>Judul Game</label><input id="gameTitle" value="Petualangan Himpunan"></div>
+        <div class="field"><label>Mata Pelajaran</label><input id="gameSubject" value="Matematika"></div>
+        <div class="field"><label>Kelas</label><input id="gameGrade" value="VII"></div>
+        <div class="field"><label>Topik</label><input id="gameTopic" value="Himpunan"></div>
+      </div>
+
+      <div class="editorTools">
+        <button class="btn primary small" id="addQuestionBtn" type="button">＋ Tambah Soal</button>
+        <button class="btn outline small" id="downloadCsvBtn" type="button">⬇ Template CSV</button>
+        <button class="btn outline small" id="downloadXlsxBtn" type="button">⬇ Template Excel</button>
+      </div>
+
+      <div class="importBox">
+        <div class="field">
+          <label>Import soal (.csv / .xlsx)</label>
+          <input id="importFile" type="file" accept=".csv,.xlsx,.xls">
+        </div>
+        <div id="importStatus" class="status"></div>
+      </div>
+
+      <div id="questionList"></div>
+
+      <div class="actions">
+        <button class="btn dark" id="previewTeacherBtn" type="button">▶ Preview Game</button>
+        <button class="btn primary" id="publishBtn" type="button">🚀 Publish & Buat Kode</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="joinScreen" class="screen hidden">
+  <div class="shell">
+    <div class="joinCard panel">
+      <div class="pill">STUDENT JOIN</div>
+      <h1>Masuk ke Petualangan</h1>
+      <div class="field"><label>Game Code</label><input id="joinCode" placeholder="Contoh: MATH783" autocomplete="off"></div>
+      <div class="field" style="margin-top:10px"><label>Nama Siswa</label><input id="studentName" placeholder="Nama kamu"></div>
+      <div id="joinStatus" class="status"></div>
+      <div class="actions">
+        <button class="btn outline" id="joinBack" type="button">← Kembali</button>
+        <button class="btn primary" id="startJoinBtn" type="button">Mulai Adventure</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="questionEditModal" class="modal">
+  <div class="modalCard">
+    <div class="pill">QUESTION EDITOR</div>
+    <h2 id="editTitle">Tambah Soal</h2>
+    <div class="grid2">
+      <div class="field"><label>Tipe</label>
+        <select id="qeType">
+          <option value="multiple-choice">Multiple Choice</option>
+          <option value="true-false">True / False</option>
+          <option value="short-answer">Short Answer</option>
+          <option value="numeric">Numeric Answer</option>
+        </select>
+      </div>
+      <div class="field"><label>Difficulty</label>
+        <select id="qeDifficulty"><option>Easy</option><option>Medium</option><option>Hard</option></select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Pertanyaan</label><textarea id="qeQuestion" rows="3"></textarea></div>
+    <div id="qeOptions" class="grid2" style="margin-top:10px">
+      <div class="field"><label>Option A</label><input id="qeA"></div>
+      <div class="field"><label>Option B</label><input id="qeB"></div>
+      <div class="field"><label>Option C</label><input id="qeC"></div>
+      <div class="field"><label>Option D</label><input id="qeD"></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Jawaban Benar</label><input id="qeAnswer" placeholder="Untuk pilihan ganda boleh isi A/B/C/D atau teks jawabannya"></div>
+    <div class="field" style="margin-top:10px"><label>Hint</label><input id="qeHint"></div>
+    <div class="field" style="margin-top:10px"><label>Explanation</label><textarea id="qeExplanation" rows="2"></textarea></div>
+    <div id="qeStatus" class="status"></div>
+    <div class="actions">
+      <button class="btn outline" id="cancelQuestionBtn" type="button">Batal</button>
+      <button class="btn primary" id="saveQuestionBtn" type="button">Simpan Soal</button>
+    </div>
+  </div>
+</div>
+
+<div id="publishedModal" class="modal">
+  <div class="modalCard" style="text-align:center;max-width:480px">
+    <div class="pill">GAME PUBLISHED</div>
+    <h2>Kode Game Guru</h2>
+    <div id="publishedCode" class="codebox">MATH783</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5">Masukkan kode ini melalui menu <b>Join dengan Kode</b>. Pada prototype offline, kode berlaku pada browser/perangkat yang sama.</p>
+    <button class="btn primary" id="publishedClose" type="button">Selesai</button>
+  </div>
+</div>
+
+<div id="quizModal" class="modal">
+  <div class="modalCard">
+    <div class="pill" id="qMeta">KNOWLEDGE GATE</div>
+    <h2>🔒 Gerbang Terkunci</h2>
+    <div id="qText" class="quizQuestion"></div>
+    <div id="qBody"></div>
+    <div id="qFeedback" class="feedback"></div>
+    <div class="actions">
+      <button class="btn light" id="hintBtn" type="button">💡 Hint</button>
+      <button class="btn primary" id="submitBtn" type="button">Buka Gerbang</button>
+    </div>
+  </div>
+</div>
+
+<div id="resultModal" class="modal">
+  <div class="modalCard" style="text-align:center;max-width:560px">
+    <div class="pill">MISSION COMPLETE</div>
+    <h1>🏆 Petualangan Selesai!</h1>
+    <div class="grid2" style="margin:16px 0">
+      <div class="qcard">Score<br><b id="rScore" style="font-size:23px">0</b></div>
+      <div class="qcard">Accuracy<br><b id="rAccuracy" style="font-size:23px">0%</b></div>
+      <div class="qcard">Correct<br><b id="rCorrect" style="font-size:23px">0/0</b></div>
+      <div class="qcard">Time<br><b id="rTime" style="font-size:23px">00:00</b></div>
+    </div>
+    <div class="actions" style="justify-content:center">
+      <button class="btn outline" id="homeAfterGame" type="button">Menu Utama</button>
+      <button class="btn primary" id="replayBtn" type="button">Main Lagi</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(()=>{
+"use strict";
+const CELL=2.3,N=21;
+const $=id=>document.getElementById(id);
+const screens={home:$("homeScreen"),teacher:$("teacherScreen"),join:$("joinScreen")};
+function showScreen(name){Object.values(screens).forEach(s=>s.classList.add("hidden"));screens[name].classList.remove("hidden")}
+function clone(v){return JSON.parse(JSON.stringify(v))}
+function norm(v){return String(v??"").trim()}
+function slugCode(subject){
+  const p=norm(subject).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,4)||"GAME";
+  return p+Math.random().toString(36).slice(2,5).toUpperCase();
+}
+const defaultQuestions=[
+ {type:"multiple-choice",question:"Jika A = {1,2,3} dan B = {2,3,4}, maka A ∩ B adalah...",options:["{1}","{2,3}","{3,4}","{1,4}"],answer:"{2,3}",hint:"Cari anggota yang muncul pada kedua himpunan.",explanation:"Irisan berisi anggota yang ada di A dan B.",difficulty:"Easy"},
+ {type:"true-false",question:"Semua bilangan prima adalah ganjil.",options:["Benar","Salah"],answer:"Salah",hint:"Perhatikan bilangan prima terkecil.",explanation:"2 adalah bilangan prima genap.",difficulty:"Easy"},
+ {type:"numeric",question:"Jika n(A)=8 dan n(B)=5, berapa n(A)+n(B)?",options:[],answer:"13",hint:"Jumlahkan banyak anggotanya.",explanation:"8+5=13.",difficulty:"Easy"},
+ {type:"multiple-choice",question:"S={1,2,3,4,5} dan A={2,4}. Aᶜ adalah...",options:["{1,3,5}","{2,4}","{1,2,3}","{3,5}"],answer:"{1,3,5}",hint:"Ambil anggota S yang tidak ada di A.",explanation:"Komplemen A terhadap S adalah {1,3,5}.",difficulty:"Medium"},
+ {type:"short-answer",question:"Tuliskan simbol himpunan kosong.",options:[],answer:"∅",accepted:["∅","{}"],hint:"Simbolnya mirip lingkaran yang dicoret.",explanation:"Himpunan kosong ditulis ∅ atau {}.",difficulty:"Easy"},
+ {type:"multiple-choice",question:"A={a,b,c}. Banyak subset A adalah...",options:["3","6","8","9"],answer:"8",hint:"Gunakan 2ⁿ.",explanation:"2³=8.",difficulty:"Medium"},
+ {type:"numeric",question:"n(A)=12, n(B)=9, n(A∩B)=4. n(A∪B)=...",options:[],answer:"17",hint:"12+9-4.",explanation:"n(A∪B)=n(A)+n(B)-n(A∩B)=17.",difficulty:"Medium"},
+ {type:"true-false",question:"Jika A ⊂ B, maka setiap anggota A merupakan anggota B.",options:["Benar","Salah"],answer:"Benar",hint:"Ingat arti subset.",explanation:"Itulah definisi subset.",difficulty:"Easy"},
+ {type:"multiple-choice",question:"Manakah himpunan yang terdefinisi jelas?",options:["Siswa pintar","Film bagus","Bilangan genap kurang dari 10","Makanan enak"],answer:"Bilangan genap kurang dari 10",hint:"Pilih yang objektif.",explanation:"Keanggotaan bilangan genap kurang dari 10 dapat ditentukan pasti.",difficulty:"Medium"},
+ {type:"numeric",question:"Dari 30 siswa, 18 suka Matematika, 15 suka IPA, 7 suka keduanya. Berapa yang suka minimal salah satu?",options:[],answer:"26",hint:"18+15-7.",explanation:"Gunakan inklusi-eksklusi: 26.",difficulty:"Hard"}
+];
+let teacherQuestions=clone(defaultQuestions),editIndex=-1;
+
+function renderQuestions(){
+ const list=$("questionList");list.innerHTML="";
+ teacherQuestions.forEach((q,i)=>{
+   const el=document.createElement("div");el.className="qcard";
+   const head=document.createElement("div");head.className="qhead";
+   const left=document.createElement("div");
+   left.innerHTML="<b>"+(i+1)+". "+escapeHtml(q.question)+"</b><div class='qmeta'>"+escapeHtml(q.type)+" • "+escapeHtml(q.difficulty||"Easy")+" • Jawaban: "+escapeHtml(q.answer)+"</div>";
+   const acts=document.createElement("div");acts.className="qactions";
+   const e=document.createElement("button");e.className="btn outline small";e.type="button";e.textContent="Edit";e.addEventListener("click",()=>openQuestionEditor(i));
+   const d=document.createElement("button");d.className="btn danger small";d.type="button";d.textContent="Hapus";d.addEventListener("click",()=>{if(teacherQuestions.length<=1){alert("Minimal harus ada 1 soal.");return}teacherQuestions.splice(i,1);renderQuestions()});
+   acts.append(e,d);head.append(left,acts);el.append(head);list.append(el);
+ });
+}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function openQuestionEditor(i=-1){
+ editIndex=i;$("editTitle").textContent=i<0?"Tambah Soal":"Edit Soal "+(i+1);
+ const q=i<0?{type:"multiple-choice",difficulty:"Easy",question:"",options:["","","",""],answer:"",hint:"",explanation:""}:clone(teacherQuestions[i]);
+ $("qeType").value=q.type||"multiple-choice";$("qeDifficulty").value=q.difficulty||"Easy";$("qeQuestion").value=q.question||"";
+ $("qeA").value=q.options?.[0]||"";$("qeB").value=q.options?.[1]||"";$("qeC").value=q.options?.[2]||"";$("qeD").value=q.options?.[3]||"";
+ $("qeAnswer").value=q.answer||"";$("qeHint").value=q.hint||"";$("qeExplanation").value=q.explanation||"";$("qeStatus").textContent="";
+ updateOptionVisibility();$("questionEditModal").classList.add("show");
+}
+function updateOptionVisibility(){
+ const t=$("qeType").value;
+ $("qeOptions").style.display=(t==="multiple-choice")?"grid":"none";
+ if(t==="true-false") $("qeAnswer").placeholder="Benar atau Salah";
+ else $("qeAnswer").placeholder=t==="numeric"?"Contoh: 96":"Ketik jawaban benar";
+}
+$("qeType").addEventListener("change",updateOptionVisibility);
+$("saveQuestionBtn").addEventListener("click",()=>{
+ const t=$("qeType").value,q=norm($("qeQuestion").value),ans=norm($("qeAnswer").value);
+ if(!q||!ans){$("qeStatus").className="status bad";$("qeStatus").textContent="Pertanyaan dan jawaban benar wajib diisi.";return}
+ let options=[];
+ if(t==="multiple-choice"){
+   options=[$("qeA").value,$("qeB").value,$("qeC").value,$("qeD").value].map(norm);
+   if(options.some(x=>!x)){ $("qeStatus").className="status bad";$("qeStatus").textContent="Empat opsi pilihan ganda harus diisi.";return}
+ }
+ if(t==="true-false") options=["Benar","Salah"];
+ let answer=ans;
+ if(t==="multiple-choice" && /^[ABCD]$/i.test(ans)) answer=options["ABCD".indexOf(ans.toUpperCase())];
+ const obj={type:t,difficulty:$("qeDifficulty").value,question:q,options,answer,hint:norm($("qeHint").value),explanation:norm($("qeExplanation").value)};
+ if(editIndex<0)teacherQuestions.push(obj);else teacherQuestions[editIndex]=obj;
+ $("questionEditModal").classList.remove("show");renderQuestions();
+});
+$("cancelQuestionBtn").addEventListener("click",()=>$("questionEditModal").classList.remove("show"));
+$("addQuestionBtn").addEventListener("click",()=>openQuestionEditor(-1));
+
+function buildGameObject(){
+ return {
+  title:norm($("gameTitle").value)||"Quiz Maze Adventure",
+  subject:norm($("gameSubject").value)||"Pelajaran",
+  grade:norm($("gameGrade").value)||"-",
+  topic:norm($("gameTopic").value)||"-",
+  questions:clone(teacherQuestions).slice(0,20)
+ };
+}
+function savePublishedGame(){
+ const obj=buildGameObject();
+ let code=slugCode(obj.subject),tries=0;
+ while(localStorage.getItem("qma:"+code)&&tries<20){code=slugCode(obj.subject);tries++}
+ obj.code=code;obj.createdAt=Date.now();
+ localStorage.setItem("qma:"+code,JSON.stringify(obj));
+ return obj;
+}
+$("publishBtn").addEventListener("click",()=>{
+ if(!teacherQuestions.length){alert("Tambahkan minimal satu soal.");return}
+ const obj=savePublishedGame();$("publishedCode").textContent=obj.code;$("publishedModal").classList.add("show");
+});
+$("publishedClose").addEventListener("click",()=>$("publishedModal").classList.remove("show"));
+
+function downloadBlob(name,type,content){
+ const blob=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)
+}
+function templateRows(){
+ return [
+  ["Question","Type","Option A","Option B","Option C","Option D","Answer","Hint","Explanation","Difficulty"],
+  ["12 × 8 = ?","multiple-choice","84","86","96","98","C","Hitung 12 × 8","12 × 8 = 96","Easy"],
+  ["Semua bilangan prima ganjil.","true-false","","","","","Salah","Perhatikan angka 2","2 adalah prima genap","Easy"],
+  ["15 + 27 = ?","numeric","","","","","42","Jumlahkan kedua bilangan","15 + 27 = 42","Easy"]
+ ];
+}
+$("downloadCsvBtn").addEventListener("click",()=>{
+ const csv=templateRows().map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
+ downloadBlob("template_soal_quiz_maze.csv","text/csv;charset=utf-8","\ufeff"+csv);
+});
+$("downloadXlsxBtn").addEventListener("click",()=>{
+ if(!window.XLSX){$("importStatus").className="status bad";$("importStatus").textContent="Library Excel belum termuat. Gunakan Template CSV.";return}
+ const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(templateRows());XLSX.utils.book_append_sheet(wb,ws,"Questions");XLSX.writeFile(wb,"template_soal_quiz_maze.xlsx");
+});
+
+$("importFile").addEventListener("change",async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ const status=$("importStatus");
+ if(!window.XLSX){status.className="status bad";status.textContent="Library import belum termuat. Pastikan internet aktif.";return}
+ try{
+   const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];
+   const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+   const parsed=rows.map(r=>{
+     const get=(...names)=>{for(const n of names){if(r[n]!==undefined)return r[n]}return ""};
+     const type=String(get("Type","type")||"multiple-choice").trim().toLowerCase().replace(/\s+/g,"-");
+     let opts=[get("Option A","A"),get("Option B","B"),get("Option C","C"),get("Option D","D")].map(v=>String(v).trim()).filter(Boolean);
+     if(type==="true-false")opts=["Benar","Salah"];
+     let ans=String(get("Answer","answer")).trim();
+     if(type==="multiple-choice"&&/^[ABCD]$/i.test(ans)){const ix="ABCD".indexOf(ans.toUpperCase());ans=opts[ix]??ans}
+     return {question:String(get("Question","question")).trim(),type,options:opts,answer:ans,hint:String(get("Hint","hint")).trim(),explanation:String(get("Explanation","explanation")).trim(),difficulty:String(get("Difficulty","difficulty")||"Easy").trim()}
+   }).filter(q=>q.question&&q.answer);
+   if(!parsed.length)throw new Error("Tidak ada baris soal valid.");
+   teacherQuestions=parsed.slice(0,20);renderQuestions();status.className="status good";status.textContent="Berhasil import "+teacherQuestions.length+" soal.";
+ }catch(err){status.className="status bad";status.textContent="Import gagal: "+err.message}
+ e.target.value="";
+});
+
+$("createBtn").addEventListener("click",()=>{renderQuestions();showScreen("teacher")});
+$("teacherBack").addEventListener("click",()=>showScreen("home"));
+$("joinBtn").addEventListener("click",()=>{$("joinStatus").textContent="";showScreen("join")});
+$("joinBack").addEventListener("click",()=>showScreen("home"));
+$("demoBtn").addEventListener("click",()=>startGame({title:"Petualangan Himpunan",subject:"Matematika",grade:"VII",topic:"Himpunan",questions:clone(defaultQuestions)}));
+$("previewTeacherBtn").addEventListener("click",()=>startGame(buildGameObject()));
+$("startJoinBtn").addEventListener("click",()=>{
+ const code=norm($("joinCode").value).toUpperCase(),name=norm($("studentName").value),status=$("joinStatus");
+ if(!code||!name){status.className="status bad";status.textContent="Isi game code dan nama siswa.";return}
+ const raw=localStorage.getItem("qma:"+code);
+ if(!raw){status.className="status bad";status.textContent="Kode tidak ditemukan di browser ini. Untuk lintas perangkat dibutuhkan backend.";return}
+ try{const obj=JSON.parse(raw);obj.studentName=name;startGame(obj)}
+ catch{status.className="status bad";status.textContent="Data game rusak."}
+});
+
+// ===== GAME =====
+let scene,camera,renderer,clock,maze,pathCells,player,limbs;
+let gates=[],coins=[],traps=[],checkpoints=[],finishPortal;
+let questions=[],totalGates=0,currentGame=null;
+let started=false,quizOpen=false,finished=false,currentGate=null,selectedAnswer=null;
+let hearts=3,score=0,coinCount=0,openedGates=0,correctCount=0,wrongCount=0,startTime=0,elapsed=0,lastTrap=0,mudUntil=0;
+let yaw=0,pitch=-.18,cameraDistance=4.4,vy=0,playerY=.66,respawn={x:1,z:1};
+let explored=new Set(),gateCells=new Set(),coinCells=new Set();
+const keys={},mctx=$("minimap").getContext("2d");
+let dragCam=false,lastMX=0,lastMY=0;
+
+function startGame(obj){
+ currentGame=clone(obj);questions=currentGame.questions?.length?clone(currentGame.questions):clone(defaultQuestions);
+ questions=questions.slice(0,20);totalGates=questions.length;
+ document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden"));
+ $("gameUi").classList.remove("hidden");
+ resetGameState();
+ if(renderer){renderer.domElement.remove();renderer.dispose();renderer=null}
+ init3D();
+ started=true;startTime=performance.now();showToast("🎮 "+(currentGame.title||"Adventure")+" dimulai!");
+}
+function resetGameState(){
+ gates=[];coins=[];traps=[];checkpoints=[];finishPortal=null;explored=new Set();gateCells=new Set();coinCells=new Set();
+ hearts=3;score=0;coinCount=0;openedGates=0;correctCount=0;wrongCount=0;elapsed=0;finished=false;quizOpen=false;currentGate=null;
+ yaw=0;pitch=-.18;cameraDistance=4.4;vy=0;respawn={x:1,z:1};updateHUD();
+}
+function key(x,z){return x+","+z}
+function gridToWorld(x,z){return{x:(x-(N-1)/2)*CELL,z:(z-(N-1)/2)*CELL}}
+function worldToGrid(x,z){return{x:Math.round(x/CELL+(N-1)/2),z:Math.round(z/CELL+(N-1)/2)}}
+function rand(n){return Math.floor(Math.random()*n)}
+function genMaze(){
+ const g=Array.from({length:N},()=>Array(N).fill(1)),stack=[[1,1]],dirs=[[2,0],[-2,0],[0,2],[0,-2]];g[1][1]=0;
+ while(stack.length){const [x,z]=stack[stack.length-1];const c=dirs.map(([dx,dz])=>[x+dx,z+dz,dx,dz]).filter(([nx,nz])=>nx>0&&nz>0&&nx<N-1&&nz<N-1&&g[nz][nx]===1);
+  if(!c.length){stack.pop();continue}const [nx,nz,dx,dz]=c[rand(c.length)];g[z+dz/2][x+dx/2]=0;g[nz][nx]=0;stack.push([nx,nz])}
+ for(let i=0;i<30;i++){const x=1+rand(N-2),z=1+rand(N-2);if(g[z][x]===1&&((g[z][x-1]===0&&g[z][x+1]===0)||(g[z-1][x]===0&&g[z+1][x]===0)))g[z][x]=0}
+ return g;
+}
+function farthest(g,s){
+ const q=[s],d=new Map([[key(s.x,s.z),0]]);let f=s,b=0;
+ while(q.length){const c=q.shift(),cd=d.get(key(c.x,c.z));if(cd>b){b=cd;f=c}
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=c.x+dx,z=c.z+dz,k=key(x,z);if(x>=0&&z>=0&&x<N&&z<N&&g[z][x]===0&&!d.has(k)){d.set(k,cd+1);q.push({x,z})}}}
+ return f;
+}
+function path(g,s,t){
+ const q=[s],seen=new Set([key(s.x,s.z)]),prev=new Map();
+ while(q.length){const c=q.shift();if(c.x===t.x&&c.z===t.z)break;
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=c.x+dx,z=c.z+dz,k=key(x,z);if(x>=0&&z>=0&&x<N&&z<N&&g[z][x]===0&&!seen.has(k)){seen.add(k);prev.set(k,c);q.push({x,z})}}}
+ const out=[];let c=t;if(!seen.has(key(t.x,t.z)))return out;while(c){out.push(c);if(c.x===s.x&&c.z===s.z)break;c=prev.get(key(c.x,c.z))}return out.reverse();
+}
+function init3D(){
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x93d9ff);scene.fog=new THREE.Fog(0x93d9ff,29,64);
+ camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,120);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;
+ $("game").appendChild(renderer.domElement);clock=new THREE.Clock();
+ scene.add(new THREE.HemisphereLight(0xdff6ff,0x557842,1.55));
+ const sun=new THREE.DirectionalLight(0xfff1ca,1.8);sun.position.set(-14,28,12);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;scene.add(sun);
+ const sunBall=new THREE.Mesh(new THREE.SphereGeometry(2.1,20,12),new THREE.MeshBasicMaterial({color:0xfff1a6}));sunBall.position.set(-27,23,-31);scene.add(sunBall);
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(N*CELL+14,N*CELL+14),new THREE.MeshLambertMaterial({color:0x76b960}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+ maze=genMaze();const s={x:1,z:1},goal=farthest(maze,s);pathCells=path(maze,s,goal);
+ buildWalls();buildDecor();buildPlayer();placeGates();placeCoins();placeTraps();placeCheckpoints();placeFinish(goal);
+ const p=gridToWorld(1,1);player.position.set(p.x,playerY,p.z);respawn={x:1,z:1};
+ bindGameEvents();animate();
+}
+function buildWalls(){
+ const geo=new THREE.BoxGeometry(CELL*.92,2.2,CELL*.92),mat=new THREE.MeshLambertMaterial({color:0x2e7f40}),cells=[];
+ for(let z=0;z<N;z++)for(let x=0;x<N;x++)if(maze[z][x]===1)cells.push({x,z});
+ const inst=new THREE.InstancedMesh(geo,mat,cells.length),m=new THREE.Matrix4();inst.castShadow=true;inst.receiveShadow=true;
+ cells.forEach((c,i)=>{const p=gridToWorld(c.x,c.z);m.makeTranslation(p.x,1.08,p.z);inst.setMatrixAt(i,m)});scene.add(inst);
+}
+function buildDecor(){
+ const trunk=new THREE.MeshLambertMaterial({color:0x7a5737}),leaf=new THREE.MeshLambertMaterial({color:0x3d8b4c});
+ for(let i=0;i<30;i++){const a=Math.random()*Math.PI*2,r=N*CELL*.58+Math.random()*8,x=Math.cos(a)*r,z=Math.sin(a)*r;
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(.18,.24,1.7,6),trunk);t.position.set(x,.85,z);t.castShadow=true;
+  const l=new THREE.Mesh(new THREE.ConeGeometry(.95,2.3,7),leaf);l.position.set(x,2.4,z);l.castShadow=true;scene.add(t,l)}
+ const cm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.8});
+ for(let i=0;i<7;i++){const g=new THREE.Group();for(let j=0;j<4;j++){const c=new THREE.Mesh(new THREE.SphereGeometry(1.4+Math.random()*.7,12,8),cm);c.position.set(j*1.5,Math.random()*.5,Math.random()*.6);g.add(c)}g.position.set(-26+Math.random()*52,14+Math.random()*7,-28+Math.random()*56);g.userData.cloud=true;scene.add(g)}
+}
+function partBox(w,h,d,color){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color}));m.castShadow=true;return m}
+function pivotPart(w,h,d,color,yOffset){
+ const pivot=new THREE.Group(),mesh=partBox(w,h,d,color);mesh.position.y=-h/2+yOffset;pivot.add(mesh);return pivot;
+}
+function buildPlayer(){
+ player=new THREE.Group();
+ const torso=partBox(.72,.88,.42,0x4b6fff);torso.position.y=1.18;
+ const head=partBox(.58,.58,.58,0xf0b98c);head.position.y=1.92;
+ const leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
+ const la=partBox(.22,.72,.24,0xf0b98c),ra=la.clone(),ll=partBox(.25,.72,.28,0x26364f),rl=ll.clone();
+ la.position.y=-.34;ra.position.y=-.34;ll.position.y=-.34;rl.position.y=-.34;
+ leftArm.position.set(-.5,1.48,0);rightArm.position.set(.5,1.48,0);leftLeg.position.set(-.2,.72,0);rightLeg.position.set(.2,.72,0);
+ leftArm.add(la);rightArm.add(ra);leftLeg.add(ll);rightLeg.add(rl);player.add(torso,head,leftArm,rightArm,leftLeg,rightLeg);scene.add(player);
+ limbs={leftArm,rightArm,leftLeg,rightLeg,torso,head};
+}
+function placeGates(){
+ const usable=Math.max(4,pathCells.length-8);
+ for(let i=0;i<totalGates;i++){const idx=Math.floor((i+1)*usable/(totalGates+1))+3,c=pathCells[Math.min(idx,pathCells.length-3)],p=gridToWorld(c.x,c.z);gateCells.add(key(c.x,c.z));
+  const g=new THREE.Group(),stone=new THREE.MeshLambertMaterial({color:0x8c7e69});
+  const l=partBox(.38,2.8,.55,0x8c7e69),r=l.clone(),top=partBox(1.95,.4,.55,0x8c7e69),door=partBox(1.3,2.08,.18,0x774b2e);
+  l.position.set(-.78,1.4,0);r.position.set(.78,1.4,0);top.position.set(0,2.58,0);door.position.y=1.04;
+  const rune=new THREE.Mesh(new THREE.TorusGeometry(.36,.08,8,18),new THREE.MeshBasicMaterial({color:0x71e5ff,transparent:true,opacity:.82}));rune.position.set(0,1.24,-.13);
+  g.add(l,r,top,door,rune);g.position.set(p.x,0,p.z);g.userData={index:i,cell:c,locked:true,door,rune,opening:false};scene.add(g);gates.push(g)}
+}
+function placeCoins(){
+ const candidates=[];for(let z=1;z<N-1;z++)for(let x=1;x<N-1;x++){const k=key(x,z);if(maze[z][x]===0&&!gateCells.has(k)&&k!==key(1,1))candidates.push({x,z})}
+ for(let i=0;i<Math.min(28,candidates.length);i++){const c=candidates.splice(rand(candidates.length),1)[0],p=gridToWorld(c.x,c.z);coinCells.add(key(c.x,c.z));
+  const m=new THREE.Mesh(new THREE.TorusGeometry(.22,.08,8,16),new THREE.MeshStandardMaterial({color:0xffcc3a,metalness:.3,roughness:.35,emissive:0x5a4100}));m.position.set(p.x,.65,p.z);m.rotation.y=Math.PI/2;m.userData={taken:false,phase:Math.random()*6.2};scene.add(m);coins.push(m)}
+}
+function placeTraps(){
+ const cand=[];for(let z=2;z<N-2;z++)for(let x=2;x<N-2;x++){const k=key(x,z);if(maze[z][x]===0&&!gateCells.has(k)&&!coinCells.has(k))cand.push({x,z})}
+ for(let i=0;i<Math.min(14,cand.length);i++){const c=cand.splice(rand(cand.length),1)[0],p=gridToWorld(c.x,c.z),type=i%3===0?"pit":i%3===1?"spike":"mud";let m;
+  if(type==="pit"){m=new THREE.Mesh(new THREE.CylinderGeometry(.68,.68,.07,22),new THREE.MeshLambertMaterial({color:0x151515}));m.position.set(p.x,.035,p.z)}
+  else if(type==="mud"){m=new THREE.Mesh(new THREE.CylinderGeometry(.76,.76,.05,22),new THREE.MeshLambertMaterial({color:0x684b31}));m.position.set(p.x,.025,p.z)}
+  else{m=new THREE.Group();const plate=partBox(1.2,.08,1.2,0x7d3b3b);plate.position.y=.04;m.add(plate);for(let j=0;j<5;j++){const s=new THREE.Mesh(new THREE.ConeGeometry(.09,.48,6),new THREE.MeshLambertMaterial({color:0xd9dde2}));s.position.set((Math.random()-.5)*.8,.28,(Math.random()-.5)*.8);m.add(s)}m.position.set(p.x,0,p.z)}
+  m.userData={type};scene.add(m);traps.push(m)}
+}
+function placeCheckpoints(){
+ [Math.ceil(totalGates*.3),Math.ceil(totalGates*.6),Math.ceil(totalGates*.9)].filter((v,i,a)=>v>0&&v<totalGates&&a.indexOf(v)===i).forEach((req,i)=>{
+  const g=gates[Math.min(req-1,gates.length-1)],c=g.userData.cell,p=gridToWorld(c.x,c.z),m=new THREE.Mesh(new THREE.CylinderGeometry(.72,.72,.07,22),new THREE.MeshBasicMaterial({color:0x55e0ae,transparent:true,opacity:.6}));
+  m.position.set(p.x,.035,p.z);m.userData={req,cell:c,active:false};scene.add(m);checkpoints.push(m)
+ })
+}
+function placeFinish(goal){const p=gridToWorld(goal.x,goal.z);finishPortal=new THREE.Group();const a=new THREE.Mesh(new THREE.TorusGeometry(.9,.12,10,28),new THREE.MeshBasicMaterial({color:0x9d7cff,transparent:true,opacity:.85}));a.rotation.y=Math.PI/2;const b=new THREE.Mesh(new THREE.TorusGeometry(.6,.08,10,24),new THREE.MeshBasicMaterial({color:0x62e9ff,transparent:true,opacity:.9}));b.rotation.y=Math.PI/2;finishPortal.add(a,b);finishPortal.position.set(p.x,1.3,p.z);finishPortal.userData.goal=goal;scene.add(finishPortal)}
+function blocked(x,z){const g=worldToGrid(x,z);if(g.x<0||g.z<0||g.x>=N||g.z>=N||maze[g.z][g.x]===1)return true;return gates.some(q=>q.userData.locked&&q.userData.cell.x===g.x&&q.userData.cell.z===g.z)}
+function canMove(x,z){const r=.31;return !blocked(x+r,z)&&!blocked(x-r,z)&&!blocked(x,z+r)&&!blocked(x,z-r)}
+let gameEventsBound=false;
+function bindGameEvents(){
+ if(gameEventsBound)return;gameEventsBound=true;
+ addEventListener("resize",()=>{if(camera&&renderer){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}});
+ addEventListener("keydown",e=>{if(!started||quizOpen)return;keys[e.code]=true;if(e.code==="Space")jump()});
+ addEventListener("keyup",e=>keys[e.code]=false);
+ $("game").addEventListener("pointerdown",e=>{if(!started||quizOpen||e.pointerType!=="mouse")return;dragCam=true;lastMX=e.clientX;lastMY=e.clientY});
+ addEventListener("pointermove",e=>{if(!dragCam||!started||quizOpen)return;const dx=e.clientX-lastMX,dy=e.clientY-lastMY;lastMX=e.clientX;lastMY=e.clientY;yaw-=dx*.006;pitch-=dy*.004;pitch=Math.max(-.72,Math.min(.42,pitch))});
+ addEventListener("pointerup",()=>dragCam=false);
+ $("game").addEventListener("wheel",e=>{if(!started)return;e.preventDefault();cameraDistance=Math.max(2.6,Math.min(7.2,cameraDistance+e.deltaY*.003))},{passive:false});
+ $("jumpBtn").addEventListener("pointerdown",jump);
+ const sb=$("sprintBtn");sb.addEventListener("pointerdown",()=>window.mobileSprint=true);["pointerup","pointercancel","pointerleave"].forEach(ev=>sb.addEventListener(ev,()=>window.mobileSprint=false));
+ window.mobileSprint=false;window.mobileMove={x:0,y:0};
+ const joy=$("joystick"),knob=$("joystickKnob");let jid=null,center=null;
+ joy.addEventListener("pointerdown",e=>{jid=e.pointerId;joy.setPointerCapture(e.pointerId);const r=joy.getBoundingClientRect();center={x:r.left+r.width/2,y:r.top+r.height/2};moveJoy(e)});
+ joy.addEventListener("pointermove",e=>{if(e.pointerId===jid)moveJoy(e)});joy.addEventListener("pointerup",e=>{if(e.pointerId===jid){jid=null;window.mobileMove={x:0,y:0};knob.style.transform="translate(0,0)"}});
+ function moveJoy(e){const dx=e.clientX-center.x,dy=e.clientY-center.y,max=40,l=Math.hypot(dx,dy)||1,s=Math.min(max,l)/l,x=dx*s,y=dy*s;knob.style.transform=`translate(${x}px,${y}px)`;window.mobileMove={x:x/max,y:y/max}}
+ const ct=$("cameraTouch");let cid=null,cx=0,cy=0;
+ ct.addEventListener("pointerdown",e=>{cid=e.pointerId;ct.setPointerCapture(e.pointerId);cx=e.clientX;cy=e.clientY});
+ ct.addEventListener("pointermove",e=>{if(e.pointerId!==cid||quizOpen)return;const dx=e.clientX-cx,dy=e.clientY-cy;cx=e.clientX;cy=e.clientY;yaw-=dx*.006;pitch-=dy*.004;pitch=Math.max(-.72,Math.min(.42,pitch))});
+ ct.addEventListener("pointerup",e=>{if(e.pointerId===cid)cid=null});
+}
+function jump(){if(started&&!quizOpen&&!finished&&player.position.y<=playerY+.03)vy=4.8}
+function openQuiz(g){
+ quizOpen=true;currentGate=g;selectedAnswer=null;const q=questions[g.userData.index];$("qMeta").textContent="KNOWLEDGE GATE "+(g.userData.index+1)+" / "+totalGates;$("qText").textContent=q.question;$("qFeedback").textContent="";$("qBody").innerHTML="";
+ if(q.type==="multiple-choice"||q.type==="true-false"){
+  const box=document.createElement("div");box.className="options";(q.options?.length?q.options:(q.type==="true-false"?["Benar","Salah"]:[])).forEach(o=>{const b=document.createElement("button");b.type="button";b.className="option";b.textContent=o;b.addEventListener("click",()=>{selectedAnswer=o;[...box.children].forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});box.appendChild(b)});$("qBody").appendChild(box)
+ }else{const inp=document.createElement("input");inp.id="textAnswer";inp.style.cssText="width:100%;padding:13px;border:2px solid #dfe5ee;border-radius:12px;font-size:16px";inp.placeholder=q.type==="numeric"?"Ketik angka jawaban...":"Ketik jawaban...";inp.addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer()});$("qBody").appendChild(inp);setTimeout(()=>inp.focus(),60)}
+ $("quizModal").classList.add("show");
+}
+function canon(s){return String(s??"").trim().toLowerCase().replace(/\s+/g,"")}
+function submitAnswer(){
+ if(!currentGate)return;const q=questions[currentGate.userData.index];let a=q.type==="multiple-choice"||q.type==="true-false"?selectedAnswer:$("textAnswer")?.value;
+ if(!norm(a)){$("qFeedback").className="feedback bad";$("qFeedback").textContent="Isi atau pilih jawaban terlebih dahulu.";return}
+ const accepted=(q.accepted||[q.answer]).map(canon);
+ if(accepted.includes(canon(a))){score+=100;correctCount++;$("qFeedback").className="feedback good";$("qFeedback").textContent="✅ Benar! Gate terbuka. +100 XP";unlockGate(currentGate);setTimeout(closeQuiz,620)}
+ else{hearts--;wrongCount++;score=Math.max(0,score-25);$("qFeedback").className="feedback bad";$("qFeedback").textContent="❌ Belum tepat. ❤️ -1";updateHUD();if(hearts<=0)setTimeout(respawnPlayer,500)}
+}
+function closeQuiz(){$("quizModal").classList.remove("show");quizOpen=false;currentGate=null;selectedAnswer=null}
+function unlockGate(g){if(!g.userData.locked)return;g.userData.locked=false;g.userData.opening=true;openedGates++;updateHUD();showToast("✨ Gate terbuka!")}
+$("submitBtn").addEventListener("click",submitAnswer);
+$("hintBtn").addEventListener("click",()=>{if(currentGate){const q=questions[currentGate.userData.index];$("qFeedback").className="feedback";$("qFeedback").textContent="💡 "+(q.hint||"Tidak ada hint untuk soal ini.")}});
+function respawnPlayer(){hearts=3;closeQuiz();const p=gridToWorld(respawn.x,respawn.z);player.position.set(p.x,playerY,p.z);vy=0;updateHUD();showToast("Respawn dari checkpoint")}
+function damage(msg){const now=performance.now();if(now-lastTrap<1200)return;lastTrap=now;hearts--;updateHUD();showToast(msg+" ❤️ -1");if(hearts<=0)respawnPlayer();else setTimeout(()=>{const p=gridToWorld(respawn.x,respawn.z);player.position.set(p.x,playerY,p.z);vy=0},180)}
+function updateHUD(){$("hearts").textContent="❤️".repeat(hearts)+"🖤".repeat(Math.max(0,3-hearts));$("gateProgress").textContent="GATE "+openedGates+" / "+totalGates;$("coinText").textContent=coinCount;$("objective").textContent=openedGates<totalGates?"Cari Knowledge Gate "+(openedGates+1):"Semua gate terbuka — temukan Finish Portal!"}
+function showToast(t){$("toast").textContent=t;$("toast").classList.add("show");clearTimeout(showToast.t);showToast.t=setTimeout(()=>$("toast").classList.remove("show"),1250)}
+function fmt(s){s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function animateCharacter(moving,sprint,air,time,dt){
+ if(!limbs)return;
+ let swing=0;
+ if(air){
+  limbs.leftArm.rotation.x=-.65;limbs.rightArm.rotation.x=-.65;limbs.leftLeg.rotation.x=.18;limbs.rightLeg.rotation.x=-.18;
+ }else if(moving){
+  const freq=sprint?11:8,amp=sprint?.95:.65;swing=Math.sin(time*freq)*amp;
+  limbs.leftArm.rotation.x=swing;limbs.rightArm.rotation.x=-swing;limbs.leftLeg.rotation.x=-swing;limbs.rightLeg.rotation.x=swing;
+  player.position.y=Math.max(playerY,player.position.y)+Math.abs(Math.sin(time*freq*2))*(sprint?.018:.012);
+ }else{
+  const idle=Math.sin(time*2.1)*.06;limbs.leftArm.rotation.x=idle;limbs.rightArm.rotation.x=-idle;limbs.leftLeg.rotation.x=0;limbs.rightLeg.rotation.x=0;
+  limbs.torso.rotation.z=Math.sin(time*1.7)*.015;
+ }
+}
+function updatePlayer(dt,time){
+ if(!started||quizOpen||finished)return;
+ let ix=0,iz=0;if(keys.KeyW)iz+=1;if(keys.KeyS)iz-=1;if(keys.KeyD)ix+=1;if(keys.KeyA)ix-=1;
+ ix+=window.mobileMove?.x||0;iz+=-(window.mobileMove?.y||0);
+ const len=Math.hypot(ix,iz),moving=len>.05,sprint=!!(keys.ShiftLeft||keys.ShiftRight||window.mobileSprint),slow=performance.now()<mudUntil?.52:1;
+ if(moving){ix/=len;iz/=len;const sin=Math.sin(yaw),cos=Math.cos(yaw),dx=ix*cos+iz*sin,dz=iz*cos-ix*sin,sp=(sprint?5.6:3.5)*slow,nx=player.position.x+dx*sp*dt,nz=player.position.z+dz*sp*dt;if(canMove(nx,player.position.z))player.position.x=nx;if(canMove(player.position.x,nz))player.position.z=nz;const target=Math.atan2(dx,dz);let d=((target-player.rotation.y+Math.PI)%(Math.PI*2))-Math.PI;player.rotation.y+=d*Math.min(1,dt*12)}
+ vy-=10.5*dt;player.position.y+=vy*dt;if(player.position.y<playerY){player.position.y=playerY;vy=0}
+ animateCharacter(moving,sprint,player.position.y>playerY+.04,time,dt);
+ const gc=worldToGrid(player.position.x,player.position.z);if(gc.x>=0&&gc.z>=0&&gc.x<N&&gc.z<N)explored.add(key(gc.x,gc.z));
+ for(const g of gates){if(g.userData.locked&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<1.5){openQuiz(g);break}}
+ for(const c of coins){if(!c.userData.taken&&Math.hypot(player.position.x-c.position.x,player.position.z-c.position.z)<.6){c.userData.taken=true;c.visible=false;coinCount++;score+=20;updateHUD();showToast("🪙 Coin +20")}}
+ for(const t of traps){if(Math.hypot(player.position.x-t.position.x,player.position.z-t.position.z)<.6){if(t.userData.type==="mud"){mudUntil=performance.now()+1700;showToast("🟫 Lumpur: gerak melambat")}else damage(t.userData.type==="pit"?"Jatuh ke pit!":"Terkena spike!")}}
+ checkpoints.forEach(cp=>{if(!cp.userData.active&&openedGates>=cp.userData.req){cp.userData.active=true;respawn={...cp.userData.cell};cp.material.color.set(0xffef77);showToast("✅ CHECKPOINT REACHED")}});
+ if(openedGates>=totalGates&&Math.hypot(player.position.x-finishPortal.position.x,player.position.z-finishPortal.position.z)<1.3)finishGame();
+}
+function updateCamera(){
+ const target=new THREE.Vector3(player.position.x,player.position.y+1.28,player.position.z),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const desired=new THREE.Vector3(target.x-Math.sin(yaw)*cp*cameraDistance,target.y-sp*cameraDistance+.45,target.z+Math.cos(yaw)*cp*cameraDistance);
+ let safe=desired.clone();for(let i=1;i<=24;i++){const p=target.clone().lerp(desired,i/24);if(blocked(p.x,p.z)){safe=target.clone().lerp(desired,Math.max(0,(i-2)/24));break}}
+ camera.position.lerp(safe,.2);camera.lookAt(target);
+}
+function drawMap(){
+ const w=$("minimap").width,h=$("minimap").height,c=w/N;mctx.clearRect(0,0,w,h);mctx.fillStyle="rgba(7,18,28,.95)";mctx.fillRect(0,0,w,h);
+ for(let z=0;z<N;z++)for(let x=0;x<N;x++){const k=key(x,z);if(!explored.has(k))continue;mctx.fillStyle=maze[z][x]===1?"#234c31":"#b8d69a";mctx.fillRect(x*c,z*c,c+1,c+1)}
+ gates.forEach(g=>{const a=g.userData.cell;if(explored.has(key(a.x,a.z))){mctx.fillStyle=g.userData.locked?"#ff6868":"#67e0ac";mctx.fillRect(a.x*c+c*.2,a.z*c+c*.2,c*.6,c*.6)}});
+ const p=worldToGrid(player.position.x,player.position.z);mctx.fillStyle="#6684ff";mctx.beginPath();mctx.arc((p.x+.5)*c,(p.z+.5)*c,Math.max(3,c*.35),0,Math.PI*2);mctx.fill();
+}
+function updateObjects(dt,time){
+ gates.forEach(g=>{if(g.userData.opening&&g.userData.door.position.y<3.35)g.userData.door.position.y+=dt*2.8;g.userData.rune.rotation.z+=dt*1.2});
+ coins.forEach(c=>{if(!c.userData.taken){c.rotation.y+=dt*2.5;c.position.y=.65+Math.sin(time*2+c.userData.phase)*.08}});
+ traps.forEach(t=>{if(t.userData.type==="spike")t.rotation.y+=dt*.25});scene.children.forEach(o=>{if(o.userData.cloud)o.position.x+=dt*.2});
+ if(finishPortal)finishPortal.rotation.y+=dt*.9;
+}
+function finishGame(){
+ if(finished)return;finished=true;elapsed=(performance.now()-startTime)/1000;score+=Math.max(0,Math.floor(500-elapsed*3));
+ const acc=correctCount+wrongCount?Math.round(correctCount/(correctCount+wrongCount)*100):100;
+ $("rScore").textContent=score.toLocaleString("id-ID");$("rAccuracy").textContent=acc+"%";$("rCorrect").textContent=correctCount+"/"+totalGates;$("rTime").textContent=fmt(elapsed);$("resultModal").classList.add("show");
+}
+$("homeAfterGame").addEventListener("click",()=>{started=false;$("resultModal").classList.remove("show");$("gameUi").classList.add("hidden");showScreen("home")});
+$("replayBtn").addEventListener("click",()=>{$("resultModal").classList.remove("show");startGame(currentGame)});
+function animate(){
+ if(!renderer)return;requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.033),time=performance.now()/1000;
+ updatePlayer(dt,time);updateCamera();updateObjects(dt,time);drawMap();if(started&&!finished){elapsed=(performance.now()-startTime)/1000;$("timeText").textContent=fmt(elapsed)}renderer.render(scene,camera);
+}
+renderQuestions();
+})();
+</script>
+</body>
+</html>
